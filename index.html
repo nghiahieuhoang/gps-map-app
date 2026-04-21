@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>GPS Location Map</title>
+
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; background: #1a1a2e; color: #eee; }
+
+    header {
+      background: #16213e;
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 2px solid #0f3460;
+    }
+    header h1 { font-size: 1.3rem; color: #e94560; }
+    header p  { font-size: 0.85rem; color: #aaa; }
+
+    #map { height: calc(100vh - 130px); width: 100%; }
+
+    #info-bar {
+      background: #16213e;
+      padding: 10px 24px;
+      display: flex;
+      gap: 32px;
+      font-size: 0.85rem;
+      border-top: 1px solid #0f3460;
+    }
+    #info-bar span { color: #aaa; }
+    #info-bar strong { color: #e94560; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>📡 GPS Location Map</h1>
+    <p>Visualizing GPS data from NMEA sensor</p>
+  </div>
+</header>
+
+<div id="map"></div>
+
+<div id="info-bar">
+  <div><span>Latitude: </span><strong id="lat">10.9403°N</strong></div>
+  <div><span>Longitude: </span><strong id="lon">106.8140°E</strong></div>
+  <div><span>Speed: </span><strong id="spd">1309.0 knots</strong></div>
+  <div><span>Satellites: </span><strong id="sat">12</strong></div>
+  <div><span>Elevation: </span><strong id="alt">0.0 m</strong></div>
+</div>
+
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+  // ── GPS data từ NMEA file (output.nmea từ nmeagen.org) ──
+  const gpsFrames = [
+    {
+      lat: 11.1073,   // 1106.436 N → 11 + 6.436/60
+      lon: 106.6141,  // 10636.846 E → 106 + 36.846/60
+      speed: 1309.0,
+      course: 41.5,
+      altitude: 0.0,
+      satellites: 12,
+      datetime: "2026-04-21 11:36:18 UTC"
+    },
+    {
+      lat: 11.1118,   // 1106.708 N
+      lon: 106.6182,  // 10637.091 E
+      speed: 1309.0,
+      course: 41.5,
+      altitude: 0.0,
+      satellites: 12,
+      datetime: "2026-04-21 11:36:19 UTC"
+    }
+  ];
+
+  // ── Khởi tạo bản đồ ──
+  const map = L.map('map').setView([gpsFrames[0].lat, gpsFrames[0].lon], 14);
+
+  // Tile layer (OpenStreetMap - miễn phí)
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors'
+  }).addTo(map);
+
+  // ── Vẽ các điểm GPS ──
+  const markers = [];
+  const latLngs = [];
+
+  gpsFrames.forEach((frame, i) => {
+    const ll = [frame.lat, frame.lon];
+    latLngs.push(ll);
+
+    const marker = L.circleMarker(ll, {
+      radius: 10,
+      fillColor: i === 0 ? "#e94560" : "#00b4d8",
+      color: "#fff",
+      weight: 2,
+      opacity: 1,
+      fillOpacity: 0.9
+    }).addTo(map);
+
+    marker.bindPopup(`
+      <b>Frame #${i + 1}</b><br>
+      🕐 ${frame.datetime}<br>
+      📍 ${frame.lat.toFixed(5)}°N, ${frame.lon.toFixed(5)}°E<br>
+      🚀 Speed: ${frame.speed} knots<br>
+      🧭 Course: ${frame.course}°<br>
+      🏔️ Elevation: ${frame.altitude} m<br>
+      🛰️ Satellites: ${frame.satellites}
+    `);
+
+    markers.push(marker);
+  });
+
+  // Vẽ đường đi giữa các điểm
+  if (latLngs.length > 1) {
+    L.polyline(latLngs, { color: "#e94560", weight: 3, dashArray: "6,4" }).addTo(map);
+  }
+
+  // Hiển thị frame đầu tiên ở info bar
+  const f = gpsFrames[0];
+  document.getElementById('lat').textContent = f.lat.toFixed(5) + '°N';
+  document.getElementById('lon').textContent = f.lon.toFixed(5) + '°E';
+  document.getElementById('spd').textContent = f.speed + ' knots';
+  document.getElementById('sat').textContent = f.satellites;
+  document.getElementById('alt').textContent = f.altitude + ' m';
+
+  // Mở popup frame đầu tiên
+  markers[0].openPopup();
+</script>
+
+</body>
+</html>
